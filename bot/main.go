@@ -80,7 +80,7 @@ func main() {
 					continue
 				}
 
-				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Товар добавлен в корзину"))
+				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, fmt.Sprintf(`Товар - "%s" добавлен в корзину`,product.Product_Name)))
 			}
 		}
 
@@ -155,7 +155,7 @@ func main() {
 					bot.Send(msgConfig)
 
 					for key, o := range orders {
-						response := fmt.Sprintf("Заказ №%d\n %s - %s руб\n",
+						response := fmt.Sprintf("Заказ №%d\n %s - %d руб\n",
 							key, o.Product_Name, o.Product_Price)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
@@ -188,7 +188,7 @@ func main() {
 
 					for key, o := range cart {
 						response := fmt.Sprintf("%d) %s - %d руб\n",
-							key, o.Product_Name, o.Product_Price)
+							key+1, o.Product_Name, o.Product_Price)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
