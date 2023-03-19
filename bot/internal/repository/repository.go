@@ -23,7 +23,7 @@ var connectionString string = fmt.Sprintf("host=%s port=%d user=%s password=%s d
 
 var Connection *dbr.Connection
 
-var Cart []Model.Product //Корзина 
+var Cart []Model.Product //Корзина
 
 func OpenTable() error {
 	var err error
@@ -37,8 +37,8 @@ func OpenTable() error {
 //Добавить товар в корзину
 func AddToCart(p Model.Product) error {
 	for _, product := range Cart {
-		if product.Product_id == p.Product_id {
-			return fmt.Errorf("Товар - %s уже в корзине!", product.Product_name)
+		if p.Product_Id == product.Product_Id {
+			return fmt.Errorf(`Товар - "%s" уже в корзине`, p.Product_Name)
 		}
 	}
 	Cart = append(Cart, p)
@@ -50,7 +50,6 @@ func ReturnCart() []Model.Product {
 	return Cart
 }
 
-
 //Получить данные о продукте
 func ReadOne(id string) (*Model.Product, error) {
 
@@ -59,14 +58,14 @@ func ReadOne(id string) (*Model.Product, error) {
 	if err != nil {
 		return nil, fmt.Errorf("неверно введён параметр id: %v", err)
 	}
-	rows, err := sess.Select("*").From("product").Where("product_id = ?", product_id).Rows()
+	rows, err := sess.Select("*").From("products").Where("product_id = ?", product_id).Rows()
 	if err != nil {
 		return nil, err
 	}
 
 	var p Model.Product
 	for rows.Next() {
-		err = rows.Scan(&p.Product_id, &p.Product_image, &p.Product_name, &p.Product_price)
+		err = rows.Scan(&p.Product_Id, &p.Product_Image, &p.Product_Name, &p.Product_Price)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +87,7 @@ func GetAllProducts() ([]Model.Product, error) {
 	}
 	for rows.Next() {
 		var p Model.Product
-		err := rows.Scan(&p.Product_id, &p.Product_image, &p.Product_name, &p.Product_price)
+		err := rows.Scan(&p.Product_Id, &p.Product_Image, &p.Product_Name, &p.Product_Price)
 		if err != nil {
 			return nil, err
 		}

@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	Repository "myapp/internal/Repository"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -49,10 +51,37 @@ func main() {
 
 		if update.CallbackQuery != nil {
 
-			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data))
+			//bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data))
 
-			bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Data))
+			if strings.Contains(update.CallbackQuery.Data, "Дoбвить товар в корзину") == true {
 
+				var (
+					Product_id []string
+					product_id string
+				)
+
+				Product_id = strings.Split(update.CallbackQuery.Data, "Дoбвить товар в корзину ")
+
+				for _, p := range Product_id {
+					product_id += p
+				}
+
+				product, err := Repository.ReadOne(product_id)
+				if err != nil {
+					log.Println(err)
+					bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Возникла ошибка, не добавлен в корзину, попробуйте позже..."))
+					continue
+				}
+
+				err = Repository.AddToCart(*product)
+				if err != nil {
+					log.Println(err)
+					bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, err.Error()))
+					continue
+				}
+
+				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Товар добавлен в корзину"))
+			}
 		}
 
 		if update.Message != nil {
@@ -69,6 +98,7 @@ func main() {
 
 			} else {
 
+				//Меню
 				if update.Message.Text == mainMenu.Keyboard[0][0].Text {
 
 					products, err := Repository.GetAllProducts()
@@ -81,19 +111,34 @@ func main() {
 					bot.Send(msgConfig)
 
 					for _, p := range products {
-						response := fmt.Sprintf("%s - %d руб\n", p.Product_name, p.Product_price)
+
+						photoBytes, err := ioutil.ReadFile(p.Product_Image)
+						if err != nil {
+							log.Println(err)
+						}
+
+						photoFileBytes := tgbotapi.FileBytes{
+							Name:  "picture",
+							Bytes: photoBytes,
+						}
+
+						message := tgbotapi.NewPhotoUpload(int64(update.Message.Chat.ID), photoFileBytes)
+						bot.Send(message)
+
+						response := fmt.Sprintf("%s - %d руб\n", p.Product_Name, p.Product_Price)
 
 						msgConfig = tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
 						msgConfig.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 							tgbotapi.NewInlineKeyboardRow(
-								tgbotapi.NewInlineKeyboardButtonData("Просмотр", fmt.Sprintf("Просмотреть товар - %d", p.Product_id)),
-								tgbotapi.NewInlineKeyboardButtonData("В корзину", fmt.Sprintf("Добавить товар в корзину - %d", p.Product_id)),
+								tgbotapi.NewInlineKeyboardButtonData("В корзину", fmt.Sprintf("Дoбвить товар в корзину %d", p.Product_Id)),
 							),
 						)
 						bot.Send(msgConfig)
 					}
 				}
+
+				//Мои заказы
 				if update.Message.Text == mainMenu.Keyboard[0][1].Text {
 
 					orders, err := Repository.GetOrders(update.Message.From.UserName)
@@ -118,6 +163,8 @@ func main() {
 						bot.Send(msgConfig)
 					}
 				}
+
+				//Корзина
 				if update.Message.Text == mainMenu.Keyboard[0][2].Text {
 
 					if err != nil {
@@ -141,7 +188,7 @@ func main() {
 
 					for key, o := range cart {
 						response := fmt.Sprintf("%d) %s - %d руб\n",
-							key, o.Product_name, o.Product_price)
+							key, o.Product_Name, o.Product_Price)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
