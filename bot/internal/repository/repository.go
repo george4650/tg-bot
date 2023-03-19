@@ -23,6 +23,7 @@ var connectionString string = fmt.Sprintf("host=%s port=%d user=%s password=%s d
 
 var Connection *dbr.Connection
 
+var Cart []Model.Product //Корзина 
 
 func OpenTable() error {
 	var err error
@@ -43,6 +44,12 @@ func AddToCart(p Model.Product) error {
 	Cart = append(Cart, p)
 	return nil
 }
+
+//Вывести информацию о корзине пользователя
+func ReturnCart() []Model.Product {
+	return Cart
+}
+
 
 //Получить данные о продукте
 func ReadOne(id string) (*Model.Product, error) {

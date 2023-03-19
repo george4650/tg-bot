@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	Repository "myapp/internal/Repository"
-	Model "myapp/internal/model"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -18,8 +17,6 @@ var mainMenu = tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButton("🗒 Корзина"),
 	),
 )
-
-var Cart []Model.Product //Корзина 
 
 func main() {
 
@@ -120,14 +117,21 @@ func main() {
 
 						bot.Send(msgConfig)
 					}
-				} 
+				}
 				if update.Message.Text == mainMenu.Keyboard[0][2].Text {
 
 					if err != nil {
 						log.Println(err)
 						continue
 					}
-					if len(Cart) == 0 {
+
+					cart := Repository.ReturnCart()
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+
+					if len(cart) == 0 {
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваша корзина пуста")
 						bot.Send(msgConfig)
 						continue
@@ -135,7 +139,7 @@ func main() {
 					msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, "Корзина:")
 					bot.Send(msgConfig)
 
-					for key, o := range Cart {
+					for key, o := range cart {
 						response := fmt.Sprintf("%d) %s - %d руб\n",
 							key, o.Product_name, o.Product_price)
 
@@ -143,7 +147,7 @@ func main() {
 
 						bot.Send(msgConfig)
 					}
-				}/* else {
+				} /* else {
 					cs, ok := courseSignMap[update.Message.From.ID]
 					if ok {
 						if cs.State == finbot.StateEmail {
