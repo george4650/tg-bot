@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	Repository "myapp/internal/repository"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -39,7 +40,7 @@ func main() {
 
 	fmt.Printf("Авторизация прошла успешно! Запущен бот: %s\n", botUser.FirstName)
 
-	u := tgbotapi.NewUpdate(0)
+	u := tgbotapi.NewUpdate(1)
 	u.Timeout = 60
 
 	updChannel, err := bot.GetUpdatesChan(u)
@@ -81,6 +82,74 @@ func main() {
 
 				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, fmt.Sprintf(`Товар - "%s" добавлен в корзину`, product.Product_Name)))
 			}
+
+			if strings.Contains(update.CallbackQuery.Data, "Убрать товар из корзины с id = ") {
+
+				var (
+					Product_id []string
+					product_id string
+				)
+
+				//Поучаем id товара
+				Product_id = strings.Split(update.CallbackQuery.Data, "Убрать товар из корзины с id = ")
+
+				for _, p := range Product_id {
+					product_id += p
+				}
+
+				err := Repository.DeleteFromCart(product_id)
+				if err != nil {
+					log.Println(err)
+					bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Возникла ошибка, товар не был удалён из корзины, попробуйте позже..."))
+					continue
+				}
+				//bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, fmt.Sprintf(`Товар - "%s" удалён из корзины`, p.Product_Name)))
+			}
+
+
+			if strings.Contains(update.CallbackQuery.Data, "Увеличить товар в корзине с id = ") {
+
+				var (
+					Product_id []string
+					product_id string
+				)
+
+				//Поучаем id товара
+				Product_id = strings.Split(update.CallbackQuery.Data, "Увеличить товар в корзине с id = ")
+
+				for _, p := range Product_id {
+					product_id += p
+				}
+
+				err := Repository.IncrementKoll(product_id)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+			}
+
+			if strings.Contains(update.CallbackQuery.Data, "Уменьшить товар в корзине с id = ") {
+
+				var (
+					Product_id []string
+					product_id string
+				)
+
+				//Поучаем id товара
+				Product_id = strings.Split(update.CallbackQuery.Data, "Уменьшить товар в корзине с id = ")
+
+				for _, p := range Product_id {
+					product_id += p
+				}
+
+				err := Repository.DeincrementKoll(product_id)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+			}
+
+
 
 		}
 
@@ -202,66 +271,28 @@ func main() {
 						bot.Send(message)
 
 						response := fmt.Sprintf("%s - %d руб\n",
-							 o.Product_Name, o.Product_Price)
+							o.Product_Name, o.Product_Price)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
 						msgConfig.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 							tgbotapi.NewInlineKeyboardRow(
-								tgbotapi.NewInlineKeyboardButtonData("▼", fmt.Sprintf("Увеличить товар в корзине с id = %d", o.Product_Id)),
-								tgbotapi.NewInlineKeyboardButtonData("Koll", "noData"),
-								tgbotapi.NewInlineKeyboardButtonData("▲", fmt.Sprintf("Уменьшить товар в корзине с id = %d", o.Product_Id)),
+								tgbotapi.NewInlineKeyboardButtonData("▼", fmt.Sprintf("Уменьшить товар в корзине с id = %d", o.Product_Id)),
+								tgbotapi.NewInlineKeyboardButtonData(strconv.Itoa(o.Product_Koll), "noData"),
+								tgbotapi.NewInlineKeyboardButtonData("▲", fmt.Sprintf("Увеличить товар в корзине с id = %d", o.Product_Id)),
 							),
 							tgbotapi.NewInlineKeyboardRow(
 								tgbotapi.NewInlineKeyboardButtonData("Удалить", fmt.Sprintf("Убрать товар из корзины с id = %d", o.Product_Id)),
 							),
 						)
 
-						bot.Send(msgConfig)
+						 bot.Send(msgConfig)
 					}
-				} /* else {
-					cs, ok := courseSignMap[update.Message.From.ID]
-					if ok {
-						if cs.State == finbot.StateEmail {
-							cs.Email = update.Message.Text
-							msgConfig := tgbotapi.NewMessage(
-								update.Message.Chat.ID,
-								"Введите телефон:")
-							bot.Send(msgConfig)
-							cs.State = 1
-						} else if cs.State == finbot.StateTel {
-							cs.Telephone = update.Message.Text
-							cs.State = 2
-							msgConfig := tgbotapi.NewMessage(
-								update.Message.Chat.ID,
-								"Введите course:")
-							msgConfig.ReplyMarkup = courseMenu
-							bot.Send(msgConfig)
-						} else if cs.State == finbot.StateCourse {
-							cs.Course = update.Message.Text
-							msgConfig := tgbotapi.NewMessage(
-								update.Message.Chat.ID,
-								"ok!")
-							msgConfig.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-							bot.Send(msgConfig)
-							delete(courseSignMap, update.Message.From.ID)
-							//  post to site!
-							err = post.SendPost(cs)
-							if err != nil {
-								fmt.Printf("send post error: %v\n", err)
-							}
-						}
-						fmt.Printf("state: %+v\n", cs)
-					} else {
-						// other messages
-						msgConfig := tgbotapi.NewMessage(
-							update.Message.Chat.ID,
-							"Не понятен ваш запрос")
-						msgConfig.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-						bot.Send(msgConfig)
-					}
-				}*/
+			
+				}
+
 			}
+
 		}
 	}
 

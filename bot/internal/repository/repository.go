@@ -23,7 +23,11 @@ var connectionString string = fmt.Sprintf("host=%s port=%d user=%s password=%s d
 
 var Connection *dbr.Connection
 
-var Cart []Model.Product //Корзина
+var Cart map[int]Model.UserCart //Корзина
+
+func init() {
+	Cart = make(map[int]Model.UserCart)
+}
 
 func OpenTable() error {
 	var err error
@@ -36,12 +40,52 @@ func OpenTable() error {
 
 //Добавить товар в корзину
 func AddToCart(p Model.Product) error {
-	for _, product := range Cart {
-		if p.Product_Id == product.Product_Id {
+	for Product_Id := range Cart {
+		if Product_Id == p.Product_Id {
 			return fmt.Errorf(`Товар - "%s" уже в корзине`, p.Product_Name)
 		}
 	}
-	Cart = append(Cart, p)
+	userCart := Model.UserCart{
+		Product_Id:    p.Product_Id,
+		Product_Image: p.Product_Image,
+		Product_Name:  p.Product_Name,
+		Product_Price: p.Product_Price,
+		Product_Koll:  1,
+	}
+	Cart[p.Product_Id] = userCart
+	return nil
+}
+
+//Увеличить товар в корзине
+func IncrementKoll(id string) error {
+	product_id, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("неверно введён параметр id: %v", err)
+	}
+	if p, ok := Cart[product_id]; ok {
+		p.Product_Koll++
+
+		Cart[product_id] = p
+	}
+	return nil
+}
+
+//Уменьшить товар в корзине
+func DeincrementKoll(id string) error {
+	product_id, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("неверно введён параметр id: %v", err)
+	}
+
+	if p, ok := Cart[product_id]; ok {
+		if p.Product_Koll == 1 {
+			DeleteFromCart(id)
+			return nil
+		}
+		p.Product_Koll--
+
+		Cart[product_id] = p
+	}
 	return nil
 }
 
@@ -51,12 +95,12 @@ func DeleteFromCart(id string) error {
 	if err != nil {
 		return fmt.Errorf("неверно введён параметр id: %v", err)
 	}
-	Cart = append(Cart[:product_id], Cart[product_id+1:]...)
+	delete(Cart, product_id)
 	return nil
 }
 
 //Вывести информацию о корзине пользователя
-func ReturnCart() []Model.Product {
+func ReturnCart() map[int]Model.UserCart {
 	return Cart
 }
 
