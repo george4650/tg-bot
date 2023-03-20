@@ -45,6 +45,16 @@ func AddToCart(p Model.Product) error {
 	return nil
 }
 
+//Удалить товар из корзины
+func DeleteFromCart(id string) error {
+	product_id, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("неверно введён параметр id: %v", err)
+	}
+	Cart = append(Cart[:product_id], Cart[product_id+1:]...)
+	return nil
+}
+
 //Вывести информацию о корзине пользователя
 func ReturnCart() []Model.Product {
 	return Cart
