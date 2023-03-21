@@ -9,7 +9,7 @@ type Product struct {
 
 type Order struct {
 	Order_Id       int
-	User           string
+	User_id        int
 	Product_Id     int
 	Product_Image  string
 	Product_Name   string

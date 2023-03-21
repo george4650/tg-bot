@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	Repository "myapp/internal/repository"
-	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -106,7 +105,6 @@ func main() {
 				//bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, fmt.Sprintf(`Товар - "%s" удалён из корзины`, p.Product_Name)))
 			}
 
-
 			if strings.Contains(update.CallbackQuery.Data, "Увеличить товар в корзине с id = ") {
 
 				var (
@@ -149,8 +147,6 @@ func main() {
 				}
 			}
 
-
-
 		}
 
 		if update.Message != nil {
@@ -162,6 +158,41 @@ func main() {
 						update.Message.Chat.ID,
 						fmt.Sprintf("Вы начали работу с ботом: %s", botUser.FirstName))
 					msg.ReplyMarkup = mainMenu
+					bot.Send(msg)
+				} else if Command == "Order" {
+
+					cart := Repository.ReturnCart()
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+
+					if len(cart) == 0 {
+						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, "В вашей корзине нет товаров!")
+						bot.Send(msgConfig)
+						continue
+					}
+
+					msg := tgbotapi.NewMessage(
+						update.Message.Chat.ID, "Ваш заказ:")
+
+					bot.Send(msg)
+
+					for _, o := range cart {
+
+						response := fmt.Sprintf("Цена за шт - %d руб\n%s x %d шт - %d руб\n",
+							o.Product_Price, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll)
+
+						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+
+						bot.Send(msgConfig)
+					}
+
+					//user_id:= update.Message.From.ID
+					//bot.Send(msg)
+				} else {
+					msg := tgbotapi.NewMessage(
+						update.Message.Chat.ID, "Такой команды нет")
 					bot.Send(msg)
 				}
 
@@ -270,25 +301,25 @@ func main() {
 						message := tgbotapi.NewPhotoUpload(int64(update.Message.Chat.ID), photoFileBytes)
 						bot.Send(message)
 
-						response := fmt.Sprintf("%s - %d руб\n",
-							o.Product_Name, o.Product_Price)
+						response := fmt.Sprintf("Цена за шт - %d руб\n%s x %d шт - %d руб\n",
+							o.Product_Price, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
 						msgConfig.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 							tgbotapi.NewInlineKeyboardRow(
 								tgbotapi.NewInlineKeyboardButtonData("▼", fmt.Sprintf("Уменьшить товар в корзине с id = %d", o.Product_Id)),
-								tgbotapi.NewInlineKeyboardButtonData(strconv.Itoa(o.Product_Koll), "noData"),
 								tgbotapi.NewInlineKeyboardButtonData("▲", fmt.Sprintf("Увеличить товар в корзине с id = %d", o.Product_Id)),
 							),
 							tgbotapi.NewInlineKeyboardRow(
 								tgbotapi.NewInlineKeyboardButtonData("Удалить", fmt.Sprintf("Убрать товар из корзины с id = %d", o.Product_Id)),
 							),
 						)
-
-						 bot.Send(msgConfig)
+						bot.Send(msgConfig)
 					}
-			
+					msgConfig = tgbotapi.NewMessage(update.Message.Chat.ID, `Для оформления заказа нажмите /Order`)
+					bot.Send(msgConfig)
+
 				}
 
 			}
