@@ -154,7 +154,7 @@ func GetAllProducts() ([]Model.Product, error) {
 func GetOrders(user_id string) ([]Model.Order, error) {
 	sess := Connection.NewSession(nil)
 	OrderInfo := []Model.Order{}
-	rows, err := sess.Select("order_id, product_name, product_koll, product_price,order_time,order_status, customer_name, customer_address,customer_phone,customer_email").From("orders").Where("user_name = ?", user_id).OrderAsc("order_id").Rows()
+	rows, err := sess.Select("order_id, product_name, product_koll, product_price,order_time,order_status, user_id, customer_name, customer_address,customer_phone,customer_email").From("orders").Where("user_id = ?", user_id).OrderAsc("order_id").Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -168,3 +168,17 @@ func GetOrders(user_id string) ([]Model.Order, error) {
 	}
 	return OrderInfo, nil
 }
+
+/*func CreateOrder(o Model.Order) error {
+	sess := Connection.NewSession(nil)
+
+	sqlStatement := `INSERT INTO person ("product_name, product_koll, product_price, order_time, order_status, user_id, customer_name, customer_address, customer_phone, customer_email") VALUES ($1, $2, $3, $4)`
+
+	var id int
+	err := sess.QueryRow( sqlStatement, o.Product_Name, o.Product_Koll,o.Product_Price, o.LastName).Scan(&id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+*/

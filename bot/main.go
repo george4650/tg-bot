@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	Model "myapp/internal/model"
 	Repository "myapp/internal/repository"
 	"strings"
 
@@ -46,6 +47,9 @@ func main() {
 	if err != nil {
 		panic("update channel error: " + err.Error())
 	}
+
+	State := 0
+	Order := Model.Order{}
 
 	for update := range updChannel {
 
@@ -188,8 +192,16 @@ func main() {
 						bot.Send(msgConfig)
 					}
 
-					//user_id:= update.Message.From.ID
-					//bot.Send(msg)
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Для оформления заказа, пожалуйста, заполните следующие поля:")
+					bot.Send(msg)
+
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Ваше имя:")
+					bot.Send(msg)
+
+					State = 1
+
+					Order.User_id = update.Message.From.ID
+
 				} else {
 					msg := tgbotapi.NewMessage(
 						update.Message.Chat.ID, "Такой команды нет")
@@ -320,6 +332,36 @@ func main() {
 					msgConfig = tgbotapi.NewMessage(update.Message.Chat.ID, `Для оформления заказа нажмите /Order`)
 					bot.Send(msgConfig)
 
+				} else if State == 1 {
+
+					Order.Customer_Name = update.Message.Text
+					if update.Message.Text == "" {
+						State = 0
+					}
+					State++
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш адрес:")
+					bot.Send(msg)
+				} else if State == 2 {
+					Order.Customer_Address = update.Message.Text
+					if update.Message.Text == "" {
+						State = 0
+					}
+					State++
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Номер вашего телефона:")
+					bot.Send(msg)
+				} else if State == 3 {
+
+					Order.Customer_Phone = update.Message.Text
+					if update.Message.Text == "" {
+						State = 0
+					}
+					State++
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш Email:")
+					bot.Send(msg)
+				} else if State == 4 {
+					Order.Customer_Email = update.Message.Text
+					State = 0
+					fmt.Println(Order)
 				}
 
 			}
