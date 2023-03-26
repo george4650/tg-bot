@@ -12,9 +12,9 @@ CREATE TABLE order_status (
 
 CREATE TABLE orders (
 	order_id serial PRIMARY KEY,
-	user_id character varying NOT NULL,
+	user_id integer NOT NULL,
 	product_id integer NOT NULL,
-	product_name  character varying NOT NULL,
+	product_name character varying NOT NULL,
 	product_koll integer NOT NULL,
 	product_price integer NOT NULL,
 	order_time timestamp NOT NULL,

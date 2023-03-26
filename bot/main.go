@@ -7,11 +7,12 @@ import (
 	Model "myapp/internal/model"
 	Repository "myapp/internal/repository"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-const tgbotapiKey = "6212646389:AAEM-Y_FvE_S2-1nOU4lq8hWb20yzkgfEHU"
+const tgbotapiKey = "5998336679:AAEPYeBoKvmVIN1lqJV0ycBEwM_LRotFYpk"
 
 var mainMenu = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
@@ -200,11 +201,8 @@ func main() {
 
 					State = 1
 
-					Order.User_id = update.Message.From.ID
-
 				} else {
-					msg := tgbotapi.NewMessage(
-						update.Message.Chat.ID, "Такой команды нет")
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Такой команды нет")
 					bot.Send(msg)
 				}
 
@@ -253,7 +251,7 @@ func main() {
 				//Мои заказы
 				if update.Message.Text == mainMenu.Keyboard[0][1].Text {
 
-					orders, err := Repository.GetOrders(update.Message.From.UserName)
+					orders, err := Repository.GetOrders(update.Message.From.ID)
 					if err != nil {
 						log.Println(err)
 						continue
@@ -263,12 +261,16 @@ func main() {
 						bot.Send(msgConfig)
 						continue
 					}
+
 					msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, "История ваших заказов:")
 					bot.Send(msgConfig)
 
 					for key, o := range orders {
-						response := fmt.Sprintf("Заказ №%d\n %s - %d руб\n",
-							key, o.Product_Name, o.Product_Price)
+
+						time := o.Order_time.Format("2006/01/02")
+
+						response := fmt.Sprintf("Заказ №%d от %v\n%s x %d шт - %d руб\n",
+							key+1, time, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
@@ -332,8 +334,10 @@ func main() {
 					msgConfig = tgbotapi.NewMessage(update.Message.Chat.ID, `Для оформления заказа нажмите /Order`)
 					bot.Send(msgConfig)
 
-				} else if State == 1 {
+				}
 
+				switch State {
+				case 1:
 					Order.Customer_Name = update.Message.Text
 					if update.Message.Text == "" {
 						State = 0
@@ -341,7 +345,7 @@ func main() {
 					State++
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш адрес:")
 					bot.Send(msg)
-				} else if State == 2 {
+				case 2:
 					Order.Customer_Address = update.Message.Text
 					if update.Message.Text == "" {
 						State = 0
@@ -349,8 +353,7 @@ func main() {
 					State++
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Номер вашего телефона:")
 					bot.Send(msg)
-				} else if State == 3 {
-
+				case 3:
 					Order.Customer_Phone = update.Message.Text
 					if update.Message.Text == "" {
 						State = 0
@@ -358,10 +361,72 @@ func main() {
 					State++
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш Email:")
 					bot.Send(msg)
-				} else if State == 4 {
+				case 4:
 					Order.Customer_Email = update.Message.Text
-					State = 0
-					fmt.Println(Order)
+
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш заказ:\n")
+					bot.Send(msg)
+
+					cart := Repository.ReturnCart()
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+
+					for _, o := range cart {
+						response := fmt.Sprintf("Цена за шт - %d руб\n%s x %d шт - %d руб\n",
+							o.Product_Price, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll)
+
+						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+
+						bot.Send(msgConfig)
+					}
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Покупатель - %s\nAдрес - %s\nEmail - %s\nТелефон - %s\n", Order.Customer_Name, Order.Customer_Address, Order.Customer_Email, Order.Customer_Phone))
+					bot.Send(msg)
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, `Для подтверждения заказа отправьте "Заказ". Чтобы вернуться отправьте "Отмена".`)
+					State++
+					bot.Send(msg)
+				case 5:
+					var err error
+
+					msg := update.Message.Text
+					if msg == "Заказ" {
+
+						cart := Repository.ReturnCart()
+
+						for product_id, product := range cart {
+							Order.User_id = update.Message.From.ID
+							Order.Product_Id = product_id
+							Order.Product_Price = product.Product_Price
+							Order.Product_Name = product.Product_Name
+							Order.Product_Koll = product.Product_Koll
+							Order.Order_status = "Принято в работу"
+							Order.Order_time = time.Now()
+
+							//Вызов функции для оформления заказа
+							err = Repository.CreateOrder(Order)
+							fmt.Println(Order)
+							if err != nil {
+								log.Println(err)
+								send := tgbotapi.NewMessage(update.Message.Chat.ID, "В данный момент невозможно оформить заказ, попробуйте позже.")
+								bot.Send(send)
+								break
+							}
+
+						}
+						if err == nil {
+							send := tgbotapi.NewMessage(update.Message.Chat.ID, "Ваш заказ успешно оформлен, с вами свяжутся в ближайшее время.")
+							bot.Send(send)
+
+							Repository.Cart = nil
+							Order = Model.Order{}
+						}
+
+					} else if msg == "Отмена" {
+						send := tgbotapi.NewMessage(update.Message.Chat.ID, "Продолжайте выбор продукции)")
+						bot.Send(send)
+						State = 0
+					}
 				}
 
 			}

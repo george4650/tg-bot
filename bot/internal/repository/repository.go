@@ -151,10 +151,10 @@ func GetAllProducts() ([]Model.Product, error) {
 }
 
 //Получить данные о заказах
-func GetOrders(user_id string) ([]Model.Order, error) {
+func GetOrders(user_id int) ([]Model.Order, error) {
 	sess := Connection.NewSession(nil)
 	OrderInfo := []Model.Order{}
-	rows, err := sess.Select("order_id, product_name, product_koll, product_price,order_time,order_status, user_id, customer_name, customer_address,customer_phone,customer_email").From("orders").Where("user_id = ?", user_id).OrderAsc("order_id").Rows()
+	rows, err := sess.Select("order_id, product_id, product_name, product_koll, product_price, order_time, order_status, customer_name, customer_address, customer_phone, customer_email").From("orders").Where("user_id = ?", user_id).OrderAsc("order_id").Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -169,16 +169,16 @@ func GetOrders(user_id string) ([]Model.Order, error) {
 	return OrderInfo, nil
 }
 
-/*func CreateOrder(o Model.Order) error {
+//Оформить заказ
+func CreateOrder(o Model.Order)  error {
 	sess := Connection.NewSession(nil)
 
-	sqlStatement := `INSERT INTO person ("product_name, product_koll, product_price, order_time, order_status, user_id, customer_name, customer_address, customer_phone, customer_email") VALUES ($1, $2, $3, $4)`
+	sqlStatement := `INSERT INTO orders ("user_id", "product_id", "product_name", "product_koll", "product_price", "order_time", "order_status", "customer_name", "customer_address", "customer_phone", "customer_email") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING order_id`
 
 	var id int
-	err := sess.QueryRow( sqlStatement, o.Product_Name, o.Product_Koll,o.Product_Price, o.LastName).Scan(&id)
+	err := sess.QueryRow(sqlStatement, o.User_id, o.Product_Id, o.Product_Name, o.Product_Koll, o.Product_Price, o.Order_time, o.Order_status, o.Customer_Name, o.Customer_Address, o.Customer_Phone, o.Customer_Email).Scan(&id)
 	if err != nil {
-		return err
+		return  err
 	}
 	return nil
 }
-*/

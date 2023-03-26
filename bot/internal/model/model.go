@@ -1,5 +1,7 @@
 package Model
 
+import "time"
+
 type Product struct {
 	Product_Id    int
 	Product_Image string
@@ -15,10 +17,8 @@ type Order struct {
 	Product_Name   string
 	Product_Price  int
 	Product_Koll   int
-	Product_amount int
-	Order_time     string
+	Order_time     time.Time
 	Order_status   string
-	Total_price    int
 	//Данные покупателя
 	Customer_Name    string
 	Customer_Address string
