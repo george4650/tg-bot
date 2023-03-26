@@ -12,7 +12,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-const tgbotapiKey = "5998336679:AAEPYeBoKvmVIN1lqJV0ycBEwM_LRotFYpk"
+const tgbotapiKey = "TOKEN"
 
 var mainMenu = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
@@ -269,8 +269,8 @@ func main() {
 
 						time := o.Order_time.Format("2006/01/02")
 
-						response := fmt.Sprintf("Заказ №%d от %v\n%s x %d шт - %d руб\n",
-							key+1, time, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll)
+						response := fmt.Sprintf("Заказ №%d от %v\n%s x %d шт - %d руб\nПокупатель: %s\nAдрес: %s\nEmail: %s\nТелефон: %s\n",
+							key+1, time, o.Product_Name, o.Product_Koll, o.Product_Price*o.Product_Koll, o.Customer_Name, o.Customer_Address, o.Customer_Email, o.Customer_Phone)
 
 						msgConfig := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 
